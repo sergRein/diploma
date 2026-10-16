@@ -1,0 +1,27 @@
+module Audit
+  class Result
+    attr_reader :title, :status, :business_risk, :technical_lang,
+                :remediation_agency, :remediation_ai_prompt
+
+    def initialize(title:, status:, business_risk:, technical_lang:, remediation_agency:, remediation_ai_prompt:)
+      @title = title
+      @status = status
+      @business_risk = business_risk
+      @technical_lang = technical_lang
+      @remediation_agency = remediation_agency
+      @remediation_ai_prompt = remediation_ai_prompt
+    end
+
+    def passed?
+      status == :passed
+    end
+
+    def failed?
+      status == :failed
+    end
+
+    def error?
+      status == :error
+    end
+  end
+end

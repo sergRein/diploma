@@ -1,0 +1,66 @@
+# DAST lab: scanner :8221, vuln mock :8222, secure mock :8223
+# Start: docker compose up --build
+
+services:
+  scanner:
+    build:
+      context: ./scanner
+    ports:
+      - "8221:8221"
+    environment:
+      PORT: "8221"
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: "true"
+      SECRET_KEY_BASE: "scanner-lab-secret-key-base-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    volumes:
+      - ./scanner:/app
+      - scanner_bundle:/usr/local/bundle
+    depends_on:
+      - vulnerable_target
+      - secure_target
+    networks:
+      - dast_lab
+    init: true
+
+  vulnerable_target:
+    build:
+      context: ./mock-vulnerable
+    ports:
+      - "8222:8222"
+    environment:
+      PORT: "8222"
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: "true"
+      SECRET_KEY_BASE: "vulnerable-lab-secret-key-base-0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab"
+    volumes:
+      - ./mock-vulnerable:/app
+      - vulnerable_bundle:/usr/local/bundle
+    networks:
+      - dast_lab
+    init: true
+
+  secure_target:
+    build:
+      context: ./mock-secure
+    ports:
+      - "8223:8223"
+    environment:
+      PORT: "8223"
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: "true"
+      SECRET_KEY_BASE: "secure-lab-secret-key-base-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    volumes:
+      - ./mock-secure:/app
+      - secure_bundle:/usr/local/bundle
+    networks:
+      - dast_lab
+    init: true
+
+networks:
+  dast_lab:
+    driver: bridge
+
+volumes:
+  scanner_bundle:
+  vulnerable_bundle:
+  secure_bundle:

@@ -1,0 +1,39 @@
+<% if @error.present? %>
+  <p class="error"><%= @error %></p>
+<% end %>
+
+<form class="form-row" action="/audits" method="post">
+  <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+  <input id="url" class="url-input" name="audit[url]" value="<%= @url %>" placeholder="https://example.com">
+  <button class="check-btn">Перевірити</button>
+</form>
+
+<details class="hint">
+  <summary>Адреси навчального стенду</summary>
+  <p>Сканер бачить макети по імені в Docker. В браузері вони як localhost:8222 і localhost:8223.</p>
+  <button onclick="document.getElementById('url').value='http://vulnerable_target:8222'">Вразливий: http://vulnerable_target:8222</button>
+  <button onclick="document.getElementById('url').value='http://secure_target:8223'">Захищений: http://secure_target:8223</button>
+</details>
+
+<% if @result %>
+  <div class="result <%= status_color(@result.status) %>">
+    <p><span class="badge"><%= status_label(@result.status) %></span> <b><%= @result.title %></b></p>
+
+    <p><b>Що це означає</b></p>
+    <p><%= @result.business_risk %></p>
+
+    <p><b>Для фахівця</b></p>
+    <pre id="tech" class="pre-box"><%= @result.technical_lang %></pre>
+
+    <div class="cols">
+      <div class="col">
+        <p><b>ТЗ для підрядника</b> <button class="small-btn" onclick="copyText('task', this)">Скопіювати</button></p>
+        <pre id="task" class="pre-box"><%= @result.remediation_agency %></pre>
+      </div>
+      <div class="col">
+        <p><b>Промпт для ШІ</b> <button class="small-btn" onclick="copyText('prompt', this)">Скопіювати</button></p>
+        <pre id="prompt" class="pre-box"><%= @result.remediation_ai_prompt %></pre>
+      </div>
+    </div>
+  </div>
+<% end %>
