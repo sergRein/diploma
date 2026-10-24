@@ -91,7 +91,7 @@ module Audit
         uri = URI.parse(value)
         raise FetchError, "Адреса має містити назву сайту." if uri.host.to_s.empty?
         raise FetchError, "Сканер відкриває лише адреси http та https." unless %w[http https].include?(uri.scheme&.downcase)
-       
+
         uri.scheme = uri.scheme.downcase
         uri.fragment = nil
         uri.path = "/" if uri.path.to_s.empty?

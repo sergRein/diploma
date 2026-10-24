@@ -3,7 +3,8 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   config.enable_reloading = false
   config.eager_load = true
-  config.consider_all_requests_local = false
+  # Навмисно покажумо сторінку RoutingError зі стек-трейсом будь-кому.
+  config.consider_all_requests_local = true
   config.action_controller.perform_caching = true
   config.cache_store = :memory_store
   config.action_dispatch.show_exceptions = :all
