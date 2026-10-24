@@ -15,25 +15,27 @@
   <button onclick="document.getElementById('url').value='http://secure_target:8223'">Захищений: http://secure_target:8223</button>
 </details>
 
-<% if @result %>
-  <div class="result <%= status_color(@result.status) %>">
-    <p><span class="badge"><%= status_label(@result.status) %></span> <b><%= @result.title %></b></p>
+<% if @results.present? %>
+  <% @results.each_with_index do |result, index| %>
+    <div class="result <%= status_color(result.status) %>">
+      <p><span class="badge"><%= status_label(result.status) %></span> <b><%= result.title %></b></p>
 
-    <p><b>Що це означає</b></p>
-    <p><%= @result.business_risk %></p>
+      <p><b>Що це означає</b></p>
+      <p><%= result.business_risk %></p>
 
-    <p><b>Для фахівця</b></p>
-    <pre id="tech" class="pre-box"><%= @result.technical_lang %></pre>
+      <p><b>Для фахівця</b></p>
+      <pre id="tech-<%= index %>" class="pre-box"><%= result.technical_lang %></pre>
 
-    <div class="cols">
-      <div class="col">
-        <p><b>ТЗ для підрядника</b> <button class="small-btn" onclick="copyText('task', this)">Скопіювати</button></p>
-        <pre id="task" class="pre-box"><%= @result.remediation_agency %></pre>
-      </div>
-      <div class="col">
-        <p><b>Промпт для ШІ</b> <button class="small-btn" onclick="copyText('prompt', this)">Скопіювати</button></p>
-        <pre id="prompt" class="pre-box"><%= @result.remediation_ai_prompt %></pre>
+      <div class="cols">
+        <div class="col">
+          <p><b>ТЗ для підрядника</b> <button class="small-btn" onclick="copyText('task-<%= index %>', this)">Скопіювати</button></p>
+          <pre id="task-<%= index %>" class="pre-box"><%= result.remediation_agency %></pre>
+        </div>
+        <div class="col">
+          <p><b>Промпт для ШІ</b> <button class="small-btn" onclick="copyText('prompt-<%= index %>', this)">Скопіювати</button></p>
+          <pre id="prompt-<%= index %>" class="pre-box"><%= result.remediation_ai_prompt %></pre>
+        </div>
       </div>
     </div>
-  </div>
+  <% end %>
 <% end %>

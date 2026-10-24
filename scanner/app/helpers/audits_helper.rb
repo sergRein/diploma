@@ -2,6 +2,7 @@ module AuditsHelper
   STATUS_LABELS = {
     "passed" => "Зелений",
     "failed" => "Червоний",
+    "warning" => "Жовтий",
     "error" => "Немає відповіді"
   }.freeze
 
@@ -12,6 +13,7 @@ module AuditsHelper
   def status_color(status)
     return "green" if status.to_s == "passed"
     return "red" if status.to_s == "failed"
+    return "yellow" if status.to_s == "warning"
 
     "yellow"
   end

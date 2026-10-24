@@ -5,7 +5,10 @@ module Audit
     end
 
     def call
-      Checkers::EnvLeakChecker.new(@raw_url).call
+      [
+        Checkers::EnvLeakChecker.new(@raw_url).call,
+        Checkers::SecurityHeadersChecker.new(@raw_url).call
+      ]
     end
   end
 end

@@ -23,5 +23,9 @@ module Audit
     def error?
       status == :error
     end
+
+    def warning?
+      status == :warning
+    end
   end
 end

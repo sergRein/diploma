@@ -11,7 +11,7 @@ class AuditsController < ApplicationController
       return
     end
 
-    @result = Audit::Runner.new(@url).call
+    @results = Audit::Runner.new(@url).call
     render :new
   end
 
