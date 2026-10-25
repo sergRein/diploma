@@ -19,6 +19,7 @@
   <% @results.each_with_index do |result, index| %>
     <div class="result <%= status_color(result.status) %>">
       <p><span class="badge"><%= status_label(result.status) %></span> <b><%= result.title %></b></p>
+      <p><%= result.category %></p>
 
       <p><b>Що це означає</b></p>
       <p><%= result.business_risk %></p>

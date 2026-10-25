@@ -208,7 +208,7 @@ PLATFORMS
 
 DEPENDENCIES
   faraday (~> 2.12)
-  nokogiri (~> 1.16)
+  nokogiri
   puma (~> 6.4)
   rails (~> 7.2.2)
 

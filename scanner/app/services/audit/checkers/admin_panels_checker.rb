@@ -2,6 +2,7 @@ module Audit
   module Checkers
     # Типові адреси панелей. Відкритою вважається лише сторінка 200 з ознакою входу, не будь-яка 200.
     class AdminPanelsChecker < BaseChecker
+      CATEGORY = "A01:2025 – Broken Access Control"
       # kind керує підстановкою в ТЗ і промпт: база, адмінка CMS, публічний вхід, черга, сервер.
       PANELS = [
         { path: "/admin", name: "типова адреса адмінки", kind: :generic },
@@ -40,6 +41,7 @@ module Audit
 
       def error_result(message)
         Result.new(
+          category: CATEGORY,
           title: "Не вдалося перевірити службові панелі",
           status: :error,
           business_risk: "Перевірку не вдалося закінчити, тому вважати, що панелі керування закриті від інтернету, не можна. Повторіть перевірку, коли сайт відповідає.",
@@ -71,6 +73,7 @@ module Audit
       def exposed(hits, rows)
         serious = hits.reject { |row| row[:panel][:kind] == :generic }
         Result.new(
+          category: CATEGORY,
           title: title,
           status: serious.any? ? :failed : :warning,
           business_risk: business_risk,
@@ -82,6 +85,7 @@ module Audit
 
       def clean(rows)
         Result.new(
+          category: CATEGORY,
           title: title,
           status: :passed,
           business_risk: "Ці типові адреси панелей з інтернету не відкриваються. Відвідувач не бачить форми входу до керування сайтом чи базою.",
@@ -124,7 +128,7 @@ module Audit
           Перевірені адреси:
           #{lines.join("\n")}
           #{verdict}
-          Для фахівця відкрита панель бази чи CMS — це OWASP Top 10 A05:2021 Security Misconfiguration: інтерфейс адміністрування доступний з інтернету без окремого шару доступу.
+          Для фахівця відкрита панель бази чи CMS — це OWASP Top 10 #{CATEGORY}: інтерфейс адміністрування доступний з інтернету без окремого шару доступу.
           Сам вміст сторінки у звіт не копіюється.
         TEXT
       end

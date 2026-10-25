@@ -2,6 +2,7 @@ module Audit
   module Checkers
     # ENV leak
     class EnvLeakChecker < BaseChecker
+      CATEGORY = "A02:2025 – Security Misconfiguration"
       PATH = "/.env"
 
       # ENV names list
@@ -43,6 +44,7 @@ module Audit
 
       def error_result(message)
         Result.new(
+          category: CATEGORY,
           title: "Не вдалося перевірити файл зі змінними",
           status: :error,
           business_risk: "Перевірку не вдалося закінчити, тому вважати що 'все добре»' або 'паролі відкриті' не можна. Повторіть перевірку, коли сайт парцює.",
@@ -63,6 +65,7 @@ module Audit
       def leaked(response, keys)
         platform = detect_platform(response, keys)
         Result.new(
+          category: CATEGORY,
           title: "Паролі сайту можна прочитати з інтернету",
           status: :failed,
           business_risk: business_risk_for_leak,
@@ -74,6 +77,7 @@ module Audit
 
       def closed(response)
         Result.new(
+          category: CATEGORY,
           title: "Файл із паролями з інтернету не відкривається",
           status: :passed,
           business_risk: "Зараз цей файл з паролями з інтернету не читається. Відвідувач не отримує ні пароль від бази клієнтів, ні секретний ключ самої програми.",
@@ -95,7 +99,7 @@ module Audit
           GET /.env повернув HTTP #{response.status} і тіло, схоже на файл середовища, а не на звичайну сторінку.
           Знайдені присвоєння: #{keys.join(', ')}. Самі значення у звіт не копіюються і вважаються вже розкритими.
           Платформа за відбитками відповіді: #{platform_name(platform)}.
-          Для фахівця це OWASP Top 10 A05:2021 Security Misconfiguration, CWE-538 (відкритий службовий файл) і CWE-312 (секрети у відкритому вигляді).
+          OWASP Top 10 #{CATEGORY}, CWE-538 (відкритий службовий файл) і CWE-312 (секрети у відкритому вигляді).
           Очікувана поведінка: HTTP 404 або 403, без рядків DB_PASSWORD=, APP_KEY= та інших секретних присвоєнь.
           Код 200 сам по собі не є доказом: якщо тіло — звичайна HTML-сторінка без таких рядків, сканер вважає це хибним 200 і витік не ставить.
         TEXT

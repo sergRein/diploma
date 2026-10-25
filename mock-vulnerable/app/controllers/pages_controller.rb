@@ -10,4 +10,8 @@ class PagesController < ApplicationController
   def adminer
     render :adminer, layout: false
   end
+
+  def submit
+    render plain: "Прийнято"
+  end
 end

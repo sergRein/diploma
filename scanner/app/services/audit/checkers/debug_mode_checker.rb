@@ -2,6 +2,7 @@ module Audit
   module Checkers
     # Неіснуюча адреса. Якщо у відповіді є стектрейс або забули про режим налагодження
     class DebugModeChecker < BaseChecker
+      CATEGORY = "A10:2025 – Mishandling of Exceptional Conditions"
       PATH = "/__dast_debug_probe_404_test"
 
       DEBUG_SIGNATURES = [
@@ -54,6 +55,7 @@ module Audit
 
       def error_result(message)
         Result.new(
+          category: CATEGORY,
           title: "Не вдалося перевірити сторінку помилки",
           status: :error,
           business_risk: "Перевірку не вдалося закінчити, тому вважати, що відвідувач не бачить внутрішніх шляхів і стек-трейсів, не можна. Повторіть перевірку, коли сайт відповідає.",
@@ -76,6 +78,7 @@ module Audit
       def leaked(response, found)
         platform = detect_platform(found)
         Result.new(
+          category: CATEGORY,
           title: title,
           status: :failed,
           business_risk: business_risk,
@@ -87,6 +90,7 @@ module Audit
 
       def clean(response)
         Result.new(
+          category: CATEGORY,
           title: title,
           status: :passed,
           business_risk: "На неіснуючій адресі сайт не показує внутрішні шляхи, список файлів і текст помилки для розробника. Відвідувач бачить звичайну відмову або перенаправлення.",
@@ -110,7 +114,7 @@ module Audit
           GET #{PATH} повернув HTTP #{response.status}. У тілі є ознаки сторінки для розробника, а не звичайної відмови.
           Знайдені сигнатури: #{found.join(', ')}. Сам стек-трейс у звіт не копіюється.
           Платформа за цими ознаками: #{platform_name(platform)}.
-          OWASP Top 10 A05:2021 Security Misconfiguration: consider_all_requests_local, APP_DEBUG або аналог увімкнений для зовнішніх запитів.
+          OWASP Top 10 #{CATEGORY}: consider_all_requests_local, APP_DEBUG або аналог увімкнений для зовнішніх запитів.
           Очікувана поведінка: HTTP 404 або короткий редірект без назв класів винятків, Rails.root, Whoops і шляхів на кшталт vendor/bundle.
         TEXT
       end

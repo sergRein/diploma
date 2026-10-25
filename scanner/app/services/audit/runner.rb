@@ -9,7 +9,8 @@ module Audit
         Checkers::EnvLeakChecker.new(@raw_url).call,
         Checkers::SecurityHeadersChecker.new(@raw_url).call,
         Checkers::DebugModeChecker.new(@raw_url).call,
-        Checkers::AdminPanelsChecker.new(@raw_url).call
+        Checkers::AdminPanelsChecker.new(@raw_url).call,
+        Checkers::FormProtectionChecker.new(@raw_url).call
       ]
     end
   end
