@@ -10,11 +10,22 @@ module Audit
         \s*(?:export\s+)?
         (?<key>
           APP_KEY |
+          APP_SECRET |
           DB_PASSWORD |
           DATABASE_URL |
           SECRET_KEY_BASE |
           RAILS_MASTER_KEY |
           DJANGO_SECRET_KEY |
+          AUTH_SECRET |
+          SESSION_SECRET |
+          AUTH_KEY |
+          SECURE_AUTH_KEY |
+          LOGGED_IN_KEY |
+          NONCE_KEY |
+          AUTH_SALT |
+          COOKIE_VALIDATION_KEY |
+          HASH_SALT |
+          DRUPAL_HASH_SALT |
           AWS_SECRET_ACCESS_KEY |
           AWS_ACCESS_KEY_ID |
           [A-Z][A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|PRIVATE_KEY|ACCESS_KEY)
@@ -112,10 +123,15 @@ module Audit
         cookie = response.headers["set-cookie"].to_s
 
         return :laravel if keys.include?("APP_KEY") || cookie.match?(/laravel_session/i)
+        return :symfony if keys.include?("APP_SECRET")
+        return :wordpress if (keys & %w[AUTH_KEY SECURE_AUTH_KEY LOGGED_IN_KEY NONCE_KEY AUTH_SALT]).any?
+        return :yii if keys.include?("COOKIE_VALIDATION_KEY")
+        return :drupal if (keys & %w[HASH_SALT DRUPAL_HASH_SALT]).any?
         return :rails if (keys & %w[SECRET_KEY_BASE RAILS_MASTER_KEY]).any?
+        return :next if (keys & %w[NEXTAUTH_SECRET AUTH_SECRET]).any?
         return :django if keys.include?("DJANGO_SECRET_KEY") || (keys.include?("SECRET_KEY") && powered.match?(/python|django|wsgi/i))
+        return :node if keys.include?("SESSION_SECRET") || powered.match?(/express/i) || server.match?(/node/i)
         return :php if powered.match?(/php/i) || server.match?(/php/i)
-        return :node if powered.match?(/express/i) || server.match?(/node/i)
         return :python if powered.match?(/python|wsgi/i)
 
         :unknown
@@ -123,13 +139,18 @@ module Audit
 
       def platform_name(platform)
         {
-          laravel: "Laravel (PHP). На це вказує змінна APP_KEY, типова для Laravel, або ознаки Laravel у відповіді",
+          laravel: "Laravel (PHP). На це вказує APP_KEY",
+          symfony: "Symfony (PHP). На це вказує APP_SECRET",
+          wordpress: "WordPress. На це вказують солі AUTH_KEY або SECURE_AUTH_KEY у файлі середовища",
+          yii: "Yii (PHP). На це вказує COOKIE_VALIDATION_KEY",
+          drupal: "Drupal. На це вказує HASH_SALT",
           rails: "Ruby on Rails. На це вказують SECRET_KEY_BASE або RAILS_MASTER_KEY",
-          django: "Django (Python). На це вказує формат секретного ключа Django",
-          php: "PHP, точний фреймворк за файлом не визначити",
-          node: "Node.js, точний фреймворк за файлом не визначити",
-          python: "Python, точний фреймворк за файлом не визначити",
-          unknown: "не визначено. Завдання нижче універсальне і не прив'язане до одного фреймворку"
+          next: "Next.js. На це вказує NEXTAUTH_SECRET або AUTH_SECRET",
+          django: "Django (Python). На це вказує DJANGO_SECRET_KEY",
+          node: "Node.js. На це вказує SESSION_SECRET або заголовок сервера",
+          php: "PHP. Точний фреймворк за іменами змінних не визначити",
+          python: "Python. Точний фреймворк за іменами змінних не визначити",
+          unknown: "не визначено. Завдання нижче універсальне"
         }.fetch(platform)
       end
 
@@ -158,35 +179,69 @@ module Audit
       end
 
       def steps_for(platform)
+        close_file = "Запит до /.env має давати 404 або 403, без рядків із секретами. Заборони вебсерверу віддавати файли, що починаються з крапки."
+
         case platform
         when :laravel
           <<~TEXT.strip
-            1. Прибери .env з теки, яку віддає вебсервер (у Laravel це не має бути public/).
-            2. У nginx або Apache заборони віддавати файли, що починаються з крапки. Запит до /.env має давати 404 або 403.
-            3. Зміни пароль бази даних.
-            4. Згенеруй новий ключ: php artisan key:generate. Старі DB_PASSWORD і APP_KEY уже розкриті.
-            5. Переконайся, що .env не в git і не копіюється в публічну теку під час деплою.
+            1. Прибери .env з public/. #{close_file}
+            2. Зміни пароль бази.
+            3. Згенеруй новий ключ: php artisan key:generate. Старий APP_KEY уже розкритий.
+            4. Не копіюй .env у public/ під час деплою і не клади його в git.
+          TEXT
+        when :symfony
+          <<~TEXT.strip
+            1. Прибери .env з public/. #{close_file}
+            2. Згенеруй новий APP_SECRET. Старий уже розкритий. Пароль бази теж заміни.
+            3. Секрети тримай у змінних оточення або в Symfony secrets, не у файлі, який віддає nginx.
+          TEXT
+        when :wordpress
+          <<~TEXT.strip
+            1. #{close_file} Для звичайного WordPress секрети мають жити у wp-config.php поза вебкоренем, не в /.env.
+            2. Згенеруй нові солі AUTH_KEY, SECURE_AUTH_KEY, LOGGED_IN_KEY, NONCE_KEY і AUTH_SALT. Старі вже розкриті.
+            3. Зміни пароль бази.
+          TEXT
+        when :yii
+          <<~TEXT.strip
+            1. Прибери .env з теки, яку віддає вебсервер. #{close_file}
+            2. Згенеруй новий cookieValidationKey. Старий уже розкритий.
+            3. Зміни пароль бази.
+          TEXT
+        when :drupal
+          <<~TEXT.strip
+            1. #{close_file}
+            2. Заміни hash_salt у settings.php. Старий HASH_SALT уже розкритий.
+            3. Зміни пароль бази. Секрети читай з оточення, не з файла в корені сайту.
           TEXT
         when :rails
           <<~TEXT.strip
-            1. Прибери .env з каталогу public/ і з будь-якої теки, яку віддає вебсервер.
-            2. Заборони вебсерверу віддавати dotfiles. Запит до /.env має давати 404 або 403.
-            3. Зміни пароль бази і secret_key_base / RAILS_MASTER_KEY: старі значення вже розкриті.
-            4. Секрети лиши лише в змінних середовища на сервері, не у файлі всередині public/.
+            1. Прибери .env з public/. #{close_file}
+            2. Зміни пароль бази, secret_key_base і RAILS_MASTER_KEY. Старі значення вже розкриті.
+            3. Секрети лиши у змінних оточення на сервері.
+          TEXT
+        when :next
+          <<~TEXT.strip
+            1. Прибери .env з public/ і зі статичного експорту. #{close_file}
+            2. Згенеруй новий NEXTAUTH_SECRET або AUTH_SECRET. Старий уже розкритий.
+            3. Зміни пароль бази. На хостингу поклади секрети в змінні оточення, не в файл поруч із сайтом.
           TEXT
         when :django
           <<~TEXT.strip
-            1. Прибери .env з каталогу, який віддає вебсервер (це не має бути static/ і не корінь, з якого nginx роздає файли).
-            2. Заборони доступ до dotfiles. Запит до /.env має давати 404 або 403.
-            3. Зміни пароль бази і SECRET_KEY у налаштуваннях Django. Старі значення вже розкриті.
-            4. Читай секрети з оточення процесу, а не з файлу в документ-руті.
+            1. Прибери .env зі static/ і з кореня, з якого nginx роздає файли. #{close_file}
+            2. Зміни SECRET_KEY у налаштуваннях Django і пароль бази. Старі значення вже розкриті.
+            3. Читай секрети з оточення процесу.
+          TEXT
+        when :node
+          <<~TEXT.strip
+            1. Прибери .env з папки, яку віддає express.static або nginx. #{close_file}
+            2. Зміни SESSION_SECRET і пароль бази. Старі значення вже розкриті.
+            3. Секрети читай з оточення процесу, не з файла в документ-руті.
           TEXT
         else
           <<~TEXT.strip
-            1. Прибери .env з публічної теки сайту.
-            2. Налаштуй вебсервер так, щоб /.env відповідав 404 або 403 і не віддавав вміст файлу.
-            3. Зміни пароль бази і секретні ключі додатка: старі значення вже розкриті.
-            4. Зберігай секрети лише в оточенні сервера або в сховищі секретів, поза вебкоренем.
+            1. Прибери .env з публічної теки сайту. #{close_file}
+            2. Зміни пароль бази і секретні ключі додатка: старі значення вже розкриті.
+            3. Зберігай секрети лише в оточенні сервера, поза вебкоренем.
           TEXT
         end
       end

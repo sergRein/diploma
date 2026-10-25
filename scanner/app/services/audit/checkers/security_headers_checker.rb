@@ -171,7 +171,7 @@ module Audit
         case platform
         when :laravel, :php
           <<~TEXT.strip
-            Write Nginx configuration snippet to include standard HTTP security headers: X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, and a strict Content-Security-Policy.
+            Напиши фрагмент конфігурації nginx зі стандартними захисними заголовками: X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff і сувора Content-Security-Policy.
             Якщо це Laravel, продублюй ті самі заголовки в middleware, щоб вони лишались навіть без nginx.
           TEXT
         when :rails
@@ -184,7 +184,7 @@ module Audit
           TEXT
         else
           <<~TEXT.strip
-            Write Nginx configuration snippet to include standard HTTP security headers: X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, and a strict Content-Security-Policy.
+            Напиши фрагмент конфігурації nginx зі стандартними захисними заголовками: X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff і сувора Content-Security-Policy.
             Якщо додаток сам збирає відповідь (Rails, PHP, Python), постав ті самі заголовки і в коді, не лише в nginx.
           TEXT
         end

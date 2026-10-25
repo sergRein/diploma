@@ -178,7 +178,7 @@ module Audit
 
       def prompt_steps(group)
         list = group[:paths].join(", ")
-        nginx = "Provide an Nginx configuration snippet to restrict access to #{list} using IP allowlisting (allow/deny directives) or HTTP Basic Authentication."
+        nginx = "Напиши фрагмент конфігурації nginx, який закриває доступ до #{list}: список дозволених IP через allow/deny або базова HTTP-автентифікація."
 
         case group[:kind]
         when :database
