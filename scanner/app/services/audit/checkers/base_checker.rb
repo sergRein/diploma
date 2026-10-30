@@ -39,12 +39,12 @@ module Audit
         raise NotImplementedError, "#{self.class} має реалізувати #error_result"
       end
 
-      def fetch(path)
+      def fetch(path, headers: nil)
         current = build_uri(path)
         redirects = 0
 
         loop do
-          response = request(current)
+          response = request(current, headers: headers)
           location = redirect_target(response, current)
           return response if location.nil? || redirects >= MAX_REDIRECTS
 
@@ -53,10 +53,11 @@ module Audit
         end
       end
 
-      def request(uri)
+      def request(uri, headers: nil)
         raw = connection_for(uri).get(uri.to_s) do |req|
           req.headers["Accept"] = "text/plain,text/html;q=0.5,*/*;q=0.1"
           req.headers["User-Agent"] = "DASTLabScanner/1.0 (educational)"
+          headers&.each { |key, value| req.headers[key] = value }
         end
 
         Response.new(status: raw.status.to_i, headers: normalize_headers(raw.headers), body: scrub(raw.body))

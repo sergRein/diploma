@@ -78,8 +78,8 @@ module Audit
           status: serious.any? ? :failed : :warning,
           business_risk: business_risk,
           technical_lang: technical_for(rows, hits),
-          remediation_agency: agency_for(hits),
-          remediation_ai_prompt: prompt_for(hits)
+          remediation_agency: agency_for(hits, front_server(hits)),
+          remediation_ai_prompt: prompt_for(hits, front_server(hits))
         )
       end
 
@@ -101,7 +101,7 @@ module Audit
 
       def business_risk
         "Службові інтерфейси керування сайтом або базою даних виставлені у відкритий доступ для всього інтернету. " \
-          "Будь-який зловмисник може запустити масовий підбір паролів або використати відомі вразливості панелі для захоплення управління сервером."
+        "Будь-який зловмисник може запустити масовий підбір паролів або використати відомі вразливості панелі для захоплення управління сервером."
       end
 
       def technical_for(rows, hits)
@@ -133,37 +133,35 @@ module Audit
         TEXT
       end
 
-      def agency_for(hits)
+      def agency_for(hits, server)
         groups = groups_for(hits)
         <<~TEXT.strip
           Завдання: обмежити доступ до службових маршрутів (#{hits.map { |row| row[:path] }.join(', ')}) на рівні веб-сервера. Дозвольте вхід лише з корпоративних IP-адрес, закрийте їх базовою HTTP-автентифікацією або переведіть доступ у закриту VPN-мережу.
 
           Знайдено: #{groups.map { |group| "#{group[:name]} (#{group[:paths].join(', ')})" }.join('; ')}.
+          Вебсервер: #{server_name(server)}.
 
-          #{groups.map { |group| agency_steps(group) }.join("\n\n")}
+          #{groups.map { |group| agency_steps(group, server) }.join("\n\n")}
 
-          Фрагмент nginx лише для знайдених адрес. 203.0.113.10 замініть на адресу офісу:
-          location ~ ^/(#{nginx_pattern(hits)}) {
-            allow 203.0.113.10;
-            deny all;
-          }
-          Готово, коли ці адреси відповідають 401, 403 або 404 і не показують форму пароля. Публічний вхід для клієнтів (якщо він серед знайдених) не закривайте deny all для всіх.
+          #{server_fragment(hits, server)}
+          Готово, коли ці адреси відповідають 401, 403 або 404 і не показують форму пароля. Публічний вхід для клієнтів (якщо він серед знайдених) не закривайте для всіх.
         TEXT
       end
 
-      def agency_steps(group)
+      def agency_steps(group, server)
         paths = group[:paths].join(", ")
+        lock = lock_phrase(server)
         case group[:kind]
         when :database
           "#{group[:name]} (#{paths}): це панель бази. Приберіть її з сервера, якщо нею не користуються. Якщо ще потрібна, лишіть лише з офісної IP-адреси або за VPN, не на публічному сайті."
         when :cms_admin
-          "#{group[:name]} (#{paths}): це вхід працівників, не клієнтів. Закрийте адресу allow/deny в nginx або базовою автентифікацією перед формою входу."
+          "#{group[:name]} (#{paths}): це вхід працівників, не клієнтів. #{lock}"
         when :cms_login
-          "#{group[:name]} (#{paths}): це може бути звичайний вхід користувачів, не лише адмінка. Не ставте deny all на всіх відвідувачів. Обмежте частоту спроб пароля. Якщо сюди входять лише працівники, тоді вже закрийте адресу за IP."
+          "#{group[:name]} (#{paths}): це може бути звичайний вхід користувачів, не лише адмінка. Не закривайте адресу для всіх відвідувачів. Обмежте частоту спроб пароля. Якщо сюди входять лише працівники, тоді вже закрийте адресу за IP."
         when :mail
           "#{group[:name]} (#{paths}): це пошта для людей, не панель бази. Не вимикайте її для всіх. Винесіть на окрему адресу і обмежте число спроб входу."
         when :queue
-          "#{group[:name]} (#{paths}): черга і фонові задачі не мають відкриватися з інтернету. Закрийте маршрут в додатку і продублюйте заборону в nginx."
+          "#{group[:name]} (#{paths}): черга і фонові задачі не мають відкриватися з інтернету. Закрийте маршрут в додатку і продублюйте заборону на вебсервері (#{server_name(server)})."
         when :server
           "#{group[:name]} (#{paths}): керування сервером застосунків. Вимкніть Manager з публічного сайту або пустіть лише з офісної мережі."
         else
@@ -171,35 +169,104 @@ module Audit
         end
       end
 
-      def prompt_for(hits)
+      def prompt_for(hits, server)
         groups = groups_for(hits)
         <<~TEXT.strip
           На сайті з інтернету відкриваються службові сторінки: #{groups.map { |group| "#{group[:name]} — #{group[:paths].join(', ')}" }.join('; ')}.
-          #{groups.map { |group| prompt_steps(group) }.join("\n")}
+          Вебсервер: #{server_name(server)}.
+          #{groups.map { |group| prompt_steps(group, server) }.join("\n")}
           Не пропонуй підбір паролів. Поясни простою мовою, що змінилось.
         TEXT
       end
 
-      def prompt_steps(group)
+      def prompt_steps(group, server)
         list = group[:paths].join(", ")
-        nginx = "Напиши фрагмент конфігурації nginx, який закриває доступ до #{list}: список дозволених IP через allow/deny або базова HTTP-автентифікація."
+        fragment = server_prompt(list, server)
 
         case group[:kind]
         when :database
-          "Знайдено #{group[:name]} (#{list}). Це панель бази даних: її треба прибрати з публічного сайту або лишити тільки з офісної мережі. #{nginx}"
+          "Знайдено #{group[:name]} (#{list}). Це панель бази даних: її треба прибрати з публічного сайту або лишити тільки з офісної мережі. #{fragment}"
         when :cms_admin
-          "Знайдено адмінку #{group[:name]} (#{list}). Це вхід для працівників. #{nginx} Якщо це #{group[:name]}, не чіпай публічні сторінки магазину, лише цю адресу."
+          "Знайдено адмінку #{group[:name]} (#{list}). Це вхід для працівників. #{fragment} Якщо це #{group[:name]}, не чіпай публічні сторінки магазину, лише цю адресу."
         when :cms_login
-          "Знайдено форму входу #{group[:name]} (#{list}). Якщо сюди входять клієнти або автори, не закривай адресу для всіх: додай обмеження числа спроб. Якщо це лише працівники, тоді #{nginx}"
+          "Знайдено форму входу #{group[:name]} (#{list}). Якщо сюди входять клієнти або автори, не закривай адресу для всіх: додай обмеження числа спроб. Якщо це лише працівники, тоді #{fragment}"
         when :mail
-          "Знайдено веб-пошту (#{list}). Не став deny all на всіх людей, яким потрібна пошта. Обмеж число спроб входу і, якщо панель службова, #{nginx}"
+          "Знайдено веб-пошту (#{list}). Не закривай адресу для всіх людей, яким потрібна пошта. Обмеж число спроб входу і, якщо панель службова, #{fragment}"
         when :queue
-          "Знайдено #{group[:name]} (#{list}). Черга не має бути публічною. Закрий маршрут у застосунку (Rails для Sidekiq, Laravel для Horizon) і #{nginx}"
+          "Знайдено #{group[:name]} (#{list}). Черга не має бути публічною. Закрий маршрут у застосунку (Rails для Sidekiq, Laravel для Horizon) і #{fragment}"
         when :server
-          "Знайдено #{group[:name]} (#{list}). Manager не має висіти на публічному сайті. Вимкни його або #{nginx}"
+          "Знайдено #{group[:name]} (#{list}). Manager не має висіти на публічному сайті. Вимкни його або #{fragment}"
         else
-          "Знайдено лише #{list}. Система за цією адресою не визначається. #{nginx} Уточни в розробника, чи це не вхід для клієнтів, перш ніж закривати всіх."
+          "Знайдено лише #{list}. Система за цією адресою не визначається. #{fragment} Уточни в розробника, чи це не вхід для клієнтів, перш ніж закривати всіх."
         end
+      end
+
+      def lock_phrase(server)
+        case server
+        when :apache
+          "Закрийте адресу в Apache через Require ip або базову автентифікацію перед формою входу."
+        when :nginx
+          "Закрийте адресу allow/deny в nginx або базовою автентифікацією перед формою входу."
+        else
+          "Закрийте адресу за IP: в Apache це Require ip, в nginx — allow/deny. Або поставте базову автентифікацію перед формою входу."
+        end
+      end
+
+      def server_prompt(list, server)
+        case server
+        when :apache
+          "Напиши фрагмент Apache 2.4, який закриває доступ до #{list}: LocationMatch і Require ip, або базова HTTP-автентифікація. Не пропонуй конфіг nginx."
+        when :nginx
+          "Напиши фрагмент конфігурації nginx, який закриває доступ до #{list}: список дозволених IP через allow/deny або базова HTTP-автентифікація."
+        else
+          "Напиши фрагмент і для Apache 2.4 (LocationMatch, Require ip), і для nginx (allow/deny), який закриває доступ до #{list}."
+        end
+      end
+
+      def server_fragment(hits, server)
+        pattern = nginx_pattern(hits)
+        case server
+        when :apache
+          <<~TEXT.strip
+            Фрагмент Apache 2.4 лише для знайдених адрес. 203.0.113.10 замініть на адресу офісу:
+            <LocationMatch "^/(#{pattern})">
+              Require ip 203.0.113.10
+            </LocationMatch>
+          TEXT
+        when :nginx
+          <<~TEXT.strip
+            Фрагмент nginx лише для знайдених адрес. 203.0.113.10 замініть на адресу офісу:
+            location ~ ^/(#{pattern}) {
+              allow 203.0.113.10;
+              deny all;
+            }
+          TEXT
+        else
+          <<~TEXT.strip
+            Вебсервер за відповіддю не визначити. Фрагмент для Apache і для nginx, лише для знайдених адрес. 203.0.113.10 замініть на адресу офісу.
+            Apache 2.4:
+            <LocationMatch "^/(#{pattern})">
+              Require ip 203.0.113.10
+            </LocationMatch>
+            nginx:
+            location ~ ^/(#{pattern}) {
+              allow 203.0.113.10;
+              deny all;
+            }
+          TEXT
+        end
+      end
+
+      def server_name(server)
+        { apache: "Apache httpd", nginx: "nginx" }.fetch(server, "не визначено, тому нижче і Apache, і nginx")
+      end
+
+      def front_server(rows)
+        sample = rows.lazy.filter_map { |row| row[:response].headers["server"] }.find { |value| !value.to_s.strip.empty? }.to_s
+        return :apache if sample.match?(/apache/i) && !sample.match?(/tomcat|coyote/i)
+        return :nginx if sample.match?(/nginx/i)
+
+        nil
       end
 
       def groups_for(hits)

@@ -64,14 +64,15 @@ module Audit
 
       def leaked(response, keys)
         platform = detect_platform(response, keys)
+        server = web_server(response)
         Result.new(
           category: CATEGORY,
           title: "Паролі сайту можна прочитати з інтернету",
           status: :failed,
           business_risk: business_risk_for_leak,
           technical_lang: technical_for_leak(response, keys, platform),
-          remediation_agency: agency_for(platform, keys),
-          remediation_ai_prompt: prompt_for(platform, keys)
+          remediation_agency: agency_for(platform, keys, server),
+          remediation_ai_prompt: prompt_for(platform, keys, server)
         )
       end
 
@@ -158,28 +159,52 @@ module Audit
         }.fetch(platform)
       end
 
-      def agency_for(platform, keys)
+      def agency_for(platform, keys, server)
         <<~TEXT.strip
           Завдання: закрити публічний доступ до файлу .env.
 
           Що знайдено: GET /.env віддає файл середовища. Є присвоєння: #{keys.join(', ')}.
           Платформа: #{platform_name(platform)}.
+          Вебсервер: #{server_name(server)}.
           Значення секретів у це завдання не копіюються. Їх треба вважати відомими чужим людям.
 
           Зробити:
           #{steps_for(platform)}
+          #{apache_dotfiles if server == :apache}
           Готово, коли GET /.env повертає 404 або 403, а в тілі немає рядків на кшталт DB_PASSWORD= і APP_KEY=.
         TEXT
       end
 
-      def prompt_for(platform, keys)
+      def prompt_for(platform, keys, server)
         <<~TEXT.strip
           На сайті відкритий файл середовища: GET /.env повертає секрети (знайдені імена: #{keys.join(', ')}). Значення не повторюй і не вигадуй.
-          Схоже, що проєкт — #{platform_name(platform)}.
+          Схоже, що проєкт — #{platform_name(platform)}. Вебсервер: #{server_name(server)}.
           Закрий витік саме для цієї платформи:
           #{steps_for(platform)}
+          #{apache_dotfiles if server == :apache}
           Після правок поясни простою мовою, що змінилось і чому старі паролі треба замінити.
         TEXT
+      end
+
+      def web_server(response)
+        server = response.headers["server"].to_s
+        return :apache if server.match?(/apache/i) && !server.match?(/tomcat|coyote/i)
+        return :nginx if server.match?(/nginx/i)
+
+        nil
+      end
+
+      def server_name(server)
+        { apache: "Apache httpd", nginx: "nginx" }.fetch(server, "не визначено")
+      end
+
+      def apache_dotfiles
+        [
+          "На Apache httpd додатково закрий службові файли в корені сайту:",
+          "<FilesMatch \"^\\.\">",
+          "  Require all denied",
+          "</FilesMatch>"
+        ].join("\n")
       end
 
       def steps_for(platform)
