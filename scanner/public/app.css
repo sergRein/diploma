@@ -107,6 +107,10 @@ body {
   margin-right: 2%;
 }
 
+.col:last-child {
+  margin-right: 0;
+}
+
 .pre-box {
   white-space: pre-wrap;
   background: #fafafa;
