@@ -132,8 +132,7 @@ module Audit
         when :php
           <<~TEXT.strip
             1. #{front_cors_step(server)}
-            2. Якщо це Laravel або Yii, у конфігу CORS лишіть лише домени компанії. Не вмикайте credentials для зірочки.
-            3. Конфіг Ruby on Rails для цього сайту не пропонуйте.
+            2. У дозволі лишіть лише домени компанії. Credentials для зірочки не вмикайте.
           TEXT
         when :rails
           <<~TEXT.strip

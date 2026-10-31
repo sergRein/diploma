@@ -178,34 +178,29 @@ module Audit
             1. У AppServiceProvider викличте URL::forceScheme('https'). У TrustProxies довірте проксі, інакше Laravel за ним і далі бачить http.
             2. Редірект 301 і заголовок HSTS поставте на вебсервері. Заголовок лише у відповіді http браузер ігнорує.
             #{front_steps(server)}
-            3. Конфіг Ruby on Rails не пропонуйте.
           TEXT
         when :symfony
           <<~TEXT.strip
             1. У config/packages/framework.yaml поставте cookie_secure: auto, trusted_headers з x-forwarded-proto і trusted_proxies для проксі.
             2. Редірект 301 і HSTS зробіть на вебсервері. Прапорець куки сам по собі з'єднання не шифрує.
             #{front_steps(server)}
-            3. Конфіг Ruby on Rails не пропонуйте.
           TEXT
         when :yii
           <<~TEXT.strip
             1. У конфігу request увімкніть secure-куки. У beforeRequest перенаправляйте на https, якщо схема ще http.
             2. Той самий редірект 301 і HSTS продублюйте на вебсервері.
             #{front_steps(server)}
-            3. Конфіг Ruby on Rails не пропонуйте.
           TEXT
         when :wordpress
           <<~TEXT.strip
             1. У загальних налаштуваннях адреси siteurl і home мають починатися з https://. У wp-config.php для адмінки: define('FORCE_SSL_ADMIN', true);
             2. Редірект усіх запитів http і заголовок HSTS зробіть на вебсервері. Плагін сертифікат не замінює.
             #{front_steps(server)}
-            3. Конфіг Ruby on Rails не пропонуйте.
           TEXT
         when :php
           <<~TEXT.strip
             1. Точний фреймворк за головною не визначити, тому редірект і HSTS ставте на вебсервері:
             #{front_steps(server)}
-            2. Якщо це Laravel, Yii або Symfony, продублюйте примусовий https у конфігу фреймворка. Конфіг Ruby on Rails не пропонуйте.
           TEXT
         when :django
           <<~TEXT.strip

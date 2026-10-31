@@ -179,9 +179,8 @@ module Audit
           ]
         when :php
           [
-            "1. #{front_intro(server)} Точний фреймворк за головною не визначити, тому вебсервер — надійне місце:",
-            front_lines(missing, server),
-            "2. Якщо це Laravel або Yii, продублюйте заголовки в middleware фреймворка. У конфіг Ruby on Rails їх не додавайте."
+            "1. #{front_intro(server)} Фреймворк за головною не визначити, тому заголовки поставте на вебсервері:",
+            front_lines(missing, server)
           ]
         when :rails
           [
