@@ -10,7 +10,7 @@ class LaravelFingerprint
     status, headers, body = @app.call(env)
     safe_headers = {}
     headers.each do |key, value|
-      next if (STRIPPED + %w[server]).include?(key.to_s.downcase)
+      next if (STRIPPED + %w[server strict-transport-security]).include?(key.to_s.downcase)
 
       safe_headers[key] = value
     end
