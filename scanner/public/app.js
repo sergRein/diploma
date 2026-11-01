@@ -1,5 +1,5 @@
 function copyText(id, btn) {
-  var text = document.getElementById(id).innerText;
+  var text = document.getElementById(id).textContent;
   var old = btn.innerText;
 
   navigator.clipboard.writeText(text).then(function () {

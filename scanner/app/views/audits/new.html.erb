@@ -16,27 +16,65 @@
 </details>
 
 <% if @results.present? %>
-  <% @results.each_with_index do |result, index| %>
-    <div class="result <%= status_color(result.status) %>">
-      <p><span class="badge"><%= status_label(result.status) %></span> <b><%= result.title %></b></p>
-      <p><%= result.category %></p>
+  <% problems = problem_results(@results) %>
+  <% oks = ok_results(@results) %>
 
-      <p><b>Що це означає</b></p>
-      <p><%= result.business_risk %></p>
+  <div class="totals">
+    <div class="total problem"><b><%= problems_caption(problems.size) %></b></div>
+    <div class="total ok"><b><%= oks.size %> гаразд</b></div>
+  </div>
 
-      <p><b>Для фахівця</b></p>
-      <pre id="tech-<%= index %>" class="pre-box"><%= result.technical_lang %></pre>
+  <% if problems.any? %>
+    <div class="copy-row">
+      <button class="check-btn" type="button" onclick="copyText('all-tasks', this)">Скопіювати всі завдання</button>
+      <button class="small-btn" type="button" onclick="copyText('all-prompts', this)">Скопіювати всі промпти</button>
+    </div>
+    <pre id="all-tasks" class="copy-source"><%= bundled_report(problems, :remediation_agency) %></pre>
+    <pre id="all-prompts" class="copy-source"><%= bundled_report(problems, :remediation_ai_prompt) %></pre>
+  <% end %>
 
-      <div class="cols">
-        <div class="col">
-          <p><b>ТЗ для підрядника</b> <button class="small-btn" onclick="copyText('task-<%= index %>', this)">Скопіювати</button></p>
-          <pre id="task-<%= index %>" class="pre-box"><%= result.remediation_agency %></pre>
-        </div>
-        <div class="col">
-          <p><b>Промпт для ШІ</b> <button class="small-btn" onclick="copyText('prompt-<%= index %>', this)">Скопіювати</button></p>
-          <pre id="prompt-<%= index %>" class="pre-box"><%= result.remediation_ai_prompt %></pre>
+  <% problems.each do |result| %>
+    <details class="result <%= status_color(result.status) %>">
+      <summary>
+        <span class="badge"><%= status_label(result.status) %></span>
+        <b><%= result.title %></b>
+        <span class="category"><%= result.category %></span>
+      </summary>
+      <div class="detail">
+        <p><b>Що це означає</b></p>
+        <p><%= result.business_risk %></p>
+        <p><b>Для фахівця</b></p>
+        <pre class="pre-box"><%= result.technical_lang %></pre>
+        <div class="cols">
+          <div class="col">
+            <p><b>ТЗ для підрядника</b></p>
+            <pre class="pre-box"><%= result.remediation_agency %></pre>
+          </div>
+          <div class="col">
+            <p><b>Промпт для ШІ</b></p>
+            <pre class="pre-box"><%= result.remediation_ai_prompt %></pre>
+          </div>
         </div>
       </div>
-    </div>
+    </details>
+  <% end %>
+
+  <% if oks.any? %>
+    <details class="ok-group">
+      <summary>Гаразд (<%= oks.size %>)</summary>
+      <% oks.each do |result| %>
+        <details class="result green">
+          <summary>
+            <span class="badge"><%= status_label(result.status) %></span>
+            <b><%= result.title %></b>
+            <span class="category"><%= result.category %></span>
+          </summary>
+          <div class="detail">
+            <p><%= result.business_risk %></p>
+            <pre class="pre-box"><%= result.technical_lang %></pre>
+          </div>
+        </details>
+      <% end %>
+    </details>
   <% end %>
 <% end %>

@@ -75,11 +75,79 @@ body {
   padding: 10px;
 }
 
+.totals {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.total {
+  flex: 1;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 18px;
+}
+
+.total.problem { background: #fdecec; color: #b42318; border-color: #e7b4b0; }
+.total.ok { background: #e7f6ef; color: #0f7b4c; border-color: #b7e0c8; }
+
+.copy-row {
+  margin-top: 12px;
+}
+
+.copy-row .check-btn,
+.copy-row .small-btn {
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+.copy-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
 .result {
   background: white;
   border: 1px solid #ddd;
-  padding: 16px;
+  padding: 0;
+  margin-top: 8px;
+}
+
+.result summary,
+.ok-group > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  list-style: none;
+}
+
+.result summary::-webkit-details-marker,
+.ok-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.category {
+  display: block;
+  color: #666;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.detail {
+  padding: 0 14px 14px;
+}
+
+.ok-group {
   margin-top: 16px;
+}
+
+.ok-group > summary {
+  color: #0f7b4c;
+  padding-left: 0;
 }
 
 .red { border-color: #e7b4b0; }
@@ -132,4 +200,7 @@ body {
   .url-input { width: 100%; display: block; margin-bottom: 8px; }
   .check-btn { margin-left: 0; }
   .col { display: block; width: 100%; margin: 0 0 12px; }
+  .totals { display: block; }
+  .total { margin-bottom: 8px; }
+  .copy-row .check-btn, .copy-row .small-btn { display: block; margin: 0 0 8px; }
 }
