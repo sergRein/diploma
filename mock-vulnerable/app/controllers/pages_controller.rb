@@ -11,6 +11,9 @@ class PagesController < ApplicationController
     render :adminer, layout: false
   end
 
+  def search
+  end
+
   def submit
     render plain: "Прийнято"
   end

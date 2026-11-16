@@ -13,7 +13,8 @@ module Audit
         Checkers::FormProtectionChecker.new(@raw_url).call,
         Checkers::CorsPolicyChecker.new(@raw_url).call,
         Checkers::SslTransportChecker.new(@raw_url).call,
-        Checkers::RateLimitChecker.new(@raw_url).call
+        Checkers::RateLimitChecker.new(@raw_url).call,
+        Checkers::ErrorXssChecker.new(@raw_url).call
       ]
     end
   end
