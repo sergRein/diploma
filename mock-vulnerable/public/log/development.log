@@ -1,0 +1,3 @@
+2026-11-16 14:22:10 INFO Started GET "/admin/login" for 192.168.1.15
+2026-11-16 14:22:11 DEBUG Parameters: {"email"=>"admin@example.com", "password"=>"[FILTERED]", "api_token"=>"sk_live_mock_secret_98765"}
+2026-11-16 14:22:12 ERROR ActiveRecord::RecordNotFound: Couldn't find User

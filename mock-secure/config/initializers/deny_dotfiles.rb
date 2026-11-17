@@ -6,6 +6,7 @@ class DenyDotfiles
   def call(env)
     path = Rack::Utils.clean_path_info(Rack::Utils.unescape_path(env["PATH_INFO"].to_s))
     return not_found if sensitive?(path)
+    return forbidden if log_file?(path)
 
     @app.call(env)
   end
@@ -14,6 +15,19 @@ class DenyDotfiles
 
   def sensitive?(path)
     path.match?(%r{\A/\.}i) || path.downcase.end_with?(".env")
+  end
+
+  def log_file?(path)
+    path.downcase.end_with?(".log")
+  end
+
+  def forbidden
+    body = "Доступ заборонено"
+    [403, {
+      "content-type" => "text/plain; charset=utf-8",
+      "content-length" => body.bytesize.to_s,
+      "cache-control" => "no-store"
+    }, [body]]
   end
 
   def not_found

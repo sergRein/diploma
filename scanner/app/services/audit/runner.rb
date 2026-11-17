@@ -16,7 +16,8 @@ module Audit
         Checkers::RateLimitChecker.new(@raw_url).call,
         Checkers::ErrorXssChecker.new(@raw_url).call,
         Checkers::SriIntegrityChecker.new(@raw_url).call,
-        Checkers::CookieSecurityChecker.new(@raw_url).call
+        Checkers::CookieSecurityChecker.new(@raw_url).call,
+        Checkers::LogExposureChecker.new(@raw_url).call
       ]
     end
   end
