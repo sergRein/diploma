@@ -1,5 +1,6 @@
 class PagesController < ApplicationController
   def home
+    response.set_header("Set-Cookie", "dast_demo_session=vulnerable_token_123; Path=/")
   end
 
   def exposed_env
